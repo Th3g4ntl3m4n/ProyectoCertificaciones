@@ -1,0 +1,10 @@
+services:
+  cybercert:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cybercert-command-center:latest
+    container_name: cybercert-command-center
+    ports:
+      - "8080:80"
+    restart: unless-stopped
