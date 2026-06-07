@@ -41,7 +41,7 @@ import {
   buildStudyPlan,
   getDailyLoggedHours,
 } from "./lib/planning";
-import { getOrCreatePlanStart, useLocalStorage } from "./lib/storage";
+import { useLocalStorage } from "./lib/storage";
 import { cn, createId, formatHours, formatPercent, toDateInputValue } from "./lib/utils";
 import type {
   CertificationStatus,
@@ -53,6 +53,7 @@ import type {
 
 const ACCESS_STORAGE_KEY = "cybercert-v1-access";
 const LOGS_STORAGE_KEY = "cybercert-v1-study-logs";
+const PLAN_START_STORAGE_KEY = "cybercert-v1-plan-start";
 
 const statusStyles: Record<CertificationStatus, string> = {
   "Al día": "border-acid/30 bg-acid/12 text-acid",
@@ -297,9 +298,13 @@ function ProgressBar({ value }: { value: number }) {
 function StrategicTimeline({
   planned,
   metrics,
+  planStart,
+  onPlanStartChange,
 }: {
   planned: PlannedCertification[];
   metrics: ReturnType<typeof buildDashboardMetrics>;
+  planStart: string;
+  onPlanStartChange: (date: string) => void;
 }) {
   const countdown = useCountdown(metrics.deadline);
   const recommended = metrics.nextExam ?? planned.find((cert) => cert.status !== "Completado");
@@ -380,6 +385,22 @@ function StrategicTimeline({
             </div>
             <TimerReset className="size-6 text-acid" />
           </div>
+          <label className="mt-5 grid gap-2 text-sm text-slate-300">
+            Fecha de inicio del plan
+            <input
+              type="date"
+              value={planStart}
+              onChange={(event) => {
+                if (event.target.value) {
+                  onPlanStartChange(event.target.value);
+                }
+              }}
+              className="rounded-lg border border-acid/35 bg-acid/10 px-3 py-3 font-semibold text-white outline-none transition focus:border-acid"
+            />
+            <span className="text-xs leading-5 text-slate-500">
+              Al cambiarla se recalculan el límite, la carga diaria, las alertas y los exámenes.
+            </span>
+          </label>
           <div className="mt-5 grid grid-cols-2 gap-3">
             {[
               ["Días", countdown.days],
@@ -1001,7 +1022,10 @@ function InsightStrip({
 }
 
 function AppShell() {
-  const [planStart] = useState(getOrCreatePlanStart);
+  const [planStart, setPlanStart] = useLocalStorage<string>(
+    PLAN_START_STORAGE_KEY,
+    toDateInputValue(new Date()),
+  );
   const [logs, setLogs] = useLocalStorage<StudyLog[]>(LOGS_STORAGE_KEY, []);
   const [, setUnlocked] = useLocalStorage(ACCESS_STORAGE_KEY, true);
   const today = useMemo(() => new Date(), []);
@@ -1029,7 +1053,12 @@ function AppShell() {
     <main className="min-h-screen bg-ink text-white">
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 md:px-6 lg:px-8">
         <DashboardHeader metrics={metrics} onLogout={logout} />
-        <StrategicTimeline planned={planned} metrics={metrics} />
+        <StrategicTimeline
+          planned={planned}
+          metrics={metrics}
+          planStart={planStart}
+          onPlanStartChange={setPlanStart}
+        />
         <InsightStrip metrics={metrics} />
 
         <section className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">

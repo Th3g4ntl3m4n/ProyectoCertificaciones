@@ -33,6 +33,47 @@ npm run build
 
 ## Ejecutar con Docker
 
+### Docker Compose recomendado
+
+Opcionalmente crea tu configuración local:
+
+```bash
+cp .env.example .env
+```
+
+Levantar la aplicación:
+
+```bash
+docker compose up --build -d
+```
+
+La app quedará disponible en:
+
+```text
+http://localhost:8080/
+```
+
+Consultar estado y salud:
+
+```bash
+docker compose ps
+docker compose logs -f cybercert
+```
+
+Para detenerla:
+
+```bash
+docker compose down
+```
+
+Puedes cambiar el puerto publicado editando `.env`:
+
+```env
+APP_PORT=3000
+```
+
+### Docker CLI
+
 Construir la imagen:
 
 ```bash
@@ -42,40 +83,18 @@ docker build -t cybercert-command-center .
 Ejecutar el contenedor:
 
 ```bash
-docker run --rm -p 8080:80 cybercert-command-center
+docker run --rm -p 8080:8080 cybercert-command-center
 ```
 
-La app quedará disponible en:
-
-```text
-http://localhost:8080/
-```
-
-También puedes usar Docker Compose:
+### Scripts disponibles
 
 ```bash
-docker compose up --build
-```
-
-O con los scripts del proyecto:
-
-```bash
+npm run docker:build
 npm run docker:up
-```
-
-Para detenerlo:
-
-```bash
-docker compose down
-```
-
-o:
-
-```bash
 npm run docker:down
 ```
 
-La imagen usa un build multi-stage: Node compila la aplicación y Nginx sirve los archivos estáticos de producción con fallback SPA a `index.html`.
+La imagen usa un build multi-stage: Node compila la aplicación y Nginx sin privilegios sirve los archivos estáticos de producción con fallback SPA, healthcheck, compresión, caché de assets y cabeceras de seguridad.
 
 ## Acceso
 
@@ -116,6 +135,7 @@ src/lib/planning.ts
 Reglas principales:
 
 - `fecha_limite = fecha_inicio_plan + 4 meses`
+- El usuario puede cambiar la fecha de inicio y el plan completo se recalcula automáticamente
 - `horas_disponibles_dia = 5`
 - `progreso = horas_estudiadas / horas_estimadas * 100`
 - Reparto diario ponderado por dificultad y prioridad

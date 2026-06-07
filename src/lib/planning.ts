@@ -4,6 +4,7 @@ import {
   differenceInCalendarDays,
   format,
   isAfter,
+  isBefore,
   parseISO,
 } from "date-fns";
 import { DAILY_STUDY_LIMIT, PLAN_MONTHS } from "../data/certifications";
@@ -28,11 +29,12 @@ export const difficultyWeights: Record<Difficulty, number> = {
 export function getPlanWindow(planStartIso: string, today = new Date()) {
   const planStart = parseISO(planStartIso);
   const deadline = addMonths(planStart, PLAN_MONTHS);
+  const effectiveDate = isBefore(today, planStart) ? planStart : today;
   const totalDays = Math.max(1, differenceInCalendarDays(deadline, planStart));
   const elapsedDays = clamp(differenceInCalendarDays(today, planStart), 0, totalDays);
-  const remainingDays = Math.max(1, differenceInCalendarDays(deadline, today));
+  const remainingDays = Math.max(1, differenceInCalendarDays(deadline, effectiveDate));
 
-  return { planStart, deadline, totalDays, elapsedDays, remainingDays };
+  return { planStart, deadline, effectiveDate, totalDays, elapsedDays, remainingDays };
 }
 
 export function getStudiedHours(certificationId: string, logs: StudyLog[]) {
@@ -53,7 +55,7 @@ export function buildStudyPlan(
   planStartIso: string,
   today = new Date(),
 ) {
-  const { deadline, totalDays, elapsedDays, remainingDays } = getPlanWindow(
+  const { deadline, effectiveDate, totalDays, elapsedDays, remainingDays } = getPlanWindow(
     planStartIso,
     today,
   );
@@ -91,7 +93,7 @@ export function buildStudyPlan(
         ? Math.ceil(item.remainingHours / dailyRecommendation)
         : 0;
     const rawExamDate =
-      item.remainingHours === 0 ? today : addDays(today, daysToFinishAtPlan);
+      item.remainingHours === 0 ? effectiveDate : addDays(effectiveDate, daysToFinishAtPlan);
     const suggestedExamDate = isAfter(rawExamDate, deadline) ? deadline : rawExamDate;
     const expectedHoursToday =
       item.certification.estimatedHours * (elapsedDays / totalDays);
